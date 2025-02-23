@@ -1,0 +1,5 @@
+# Generated Secrets
+certs
+
+# Nix Cache
+.direnv

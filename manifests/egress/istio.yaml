@@ -1,0 +1,107 @@
+apiVersion: networking.istio.io/v2
+kind: Gateway
+metadata:
+  name: istio-egressgateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - httpbin.example.com
+      tls:
+        mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: egressgateway-for-httpbin
+  namespace: app
+spec:
+  host: istio-egressgateway.istio-system.svc.cluster.local
+  subsets:
+    - name: httpbin
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+        portLevelSettings:
+          - port:
+              number: 443
+            tls:
+              mode: ISTIO_MUTUAL
+              sni: httpbin.example.com
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: direct-httpbin-through-egress-gateway
+  namespace: app
+spec:
+  hosts:
+    - httpbin.example.com
+  gateways:
+    - istio-egressgateway
+    - mesh
+  http:
+    - match:
+        - gateways:
+            - mesh
+          port: 80
+      route:
+        - destination:
+            host: istio-egressgateway.istio-system.svc.cluster.local
+            subset: httpbin
+            port:
+              number: 443
+          weight: 100
+    - match:
+        - gateways:
+            - istio-egressgateway
+          port: 443
+      route:
+        - destination:
+            host: httpbin.example.com
+            port:
+              number: 444
+          weight: 100
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: originate-mtls-for-httpbin
+  namespace: app
+spec:
+  host: httpbin.example.com
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: MUTUAL
+          credentialName: client-credential # this must match the secret created earlier to hold client certs
+          sni: httpbin.example.com
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: httpbin.example.com
+  namespace: app
+spec:
+  hosts:
+    - httpbin.example.com
+  addresses:
+    - 111.16.1.1 #can be any IP address except 127.0.0.1
+  ports:
+    - number: 443
+      name: https
+      protocol: TLS
+  resolution: STATIC # refers to static address below
+  location: MESH_EXTERNAL
+  endpoints:
+    - address: 172.18.0.5
