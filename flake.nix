@@ -24,10 +24,15 @@
         let
           setupClusters = pkgs.writeShellApplication {
             name = "setup-clusters";
-            runtimeInputs = with pkgs; [ kubectl kind openssl ];
+            runtimeInputs = with pkgs; [
+              kubectl
+              kind
+              openssl
+            ];
             text = builtins.readFile ./scripts/setup_clusters.sh;
           };
-        in pkgs.mkShell {
+        in
+        pkgs.mkShell {
           buildInputs = with pkgs; [
             setupClusters
             openssl

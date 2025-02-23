@@ -21,12 +21,12 @@ kubectl --context kind-ingress apply -k manifests/ingress
 kubectl --context kind-egress -k manifests/egress
 
 ipaddress=$(kubectl --context kind-ingress \
--n istio-system get svc istio-ingressgateway \
--o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  -n istio-system get svc istio-ingressgateway \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-kubectl --context kind-egress get configmap coredns -n kube-system -o json | \
-jq --arg ip "$ipaddress" '.data.Corefile |= sub("(?m)^kubernetes"; "hosts {\n  $ip httpbin.example.com\n  fallthrough\n}\nkubernetes")' | \
-kubectl --context kind-egress apply -f -
+kubectl --context kind-egress get configmap coredns -n kube-system -o json |
+  jq --arg ip "$ipaddress" '.data.Corefile |= sub("(?m)^kubernetes"; "hosts {\n  $ip httpbin.example.com\n  fallthrough\n}\nkubernetes")' |
+  kubectl --context kind-egress apply -f -
 
 mkdir certs
 openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 \
@@ -35,26 +35,26 @@ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 \
   -out certs/example.com.crt
 
 openssl req -out certs/client.example.com.csr -nodes -newkey rsa:2048 \
-    -keyout certs/client.example.com.key \
-    -subj "/CN=client.example.com/O=client organization"
+  -keyout certs/client.example.com.key \
+  -subj "/CN=client.example.com/O=client organization"
 
 openssl x509 -req -sha256 -days 365 \
-    -CA certs/example.com.crt \
-    -CAkey certs/example.com.key \
-    -set_serial 1 \
-    -in certs/client.example.com.csr \
-    -out certs/client.example.com.crt
+  -CA certs/example.com.crt \
+  -CAkey certs/example.com.key \
+  -set_serial 1 \
+  -in certs/client.example.com.csr \
+  -out certs/client.example.com.crt
 
 openssl req -out certs/httpbin.example.com.csr -newkey rsa:2048 -nodes \
-    -keyout certs/httpbin.example.com.key \
-    -subj "/CN=httpbin.example.com/O=httpbin organization"
+  -keyout certs/httpbin.example.com.key \
+  -subj "/CN=httpbin.example.com/O=httpbin organization"
 
 openssl x509 -req -sha256 -days 365 \
-    -CA example.com.crt \
-    -CAkey example.com.key \
-    -set_serial 1 \
-    -in httpbin.example.com.csr \
-    -out httpbin.example.com.crt
+  -CA example.com.crt \
+  -CAkey example.com.key \
+  -set_serial 1 \
+  -in httpbin.example.com.csr \
+  -out httpbin.example.com.crt
 
 kubectl create secret \
   --context kind-egress \
